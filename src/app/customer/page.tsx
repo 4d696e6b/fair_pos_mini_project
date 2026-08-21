@@ -240,7 +240,7 @@ export default function CustomerPage() {
           </main>
 
           {/* Order sidebar */}
-          <aside className="flex w-[360px] shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <aside className="flex w-90 shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex items-center justify-between px-6 py-5">
               <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-50">
                 รายการอาหาร
