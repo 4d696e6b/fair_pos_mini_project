@@ -6,6 +6,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { createMenu } from "@/shared/service/menu";
+import { addOrder } from "@/shared/service/order";
 
 type MenuItem = {
   id: string;
@@ -44,6 +45,7 @@ export default function CustomerPage() {
   const [cart, setCart] = useState<CartLine[]>(INITIAL_CART);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Define menu from Firestore
   const [menu, setMenu] = useState<Record<Category, MenuItem[]>>({
@@ -116,6 +118,27 @@ export default function CustomerPage() {
   function clearCart() {
     setCart([]);
     setEditingNoteId(null);
+  }
+
+  async function submitOrder() {
+    if (cart.length === 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      const orderList = cart.map((line) => ({
+        id: line.id,
+        name: line.name,
+        price: line.unitPrice,
+        img: line.img,
+        quantity: line.qty,
+        note: line.note,
+      }));
+      await addOrder(orderList);
+      clearCart();
+    } catch (err) {
+      console.error("Failed to submit order", err);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function startEditNote(line: CartLine) {
@@ -336,7 +359,8 @@ export default function CustomerPage() {
                 <span>฿{total.toFixed(2)}</span>
               </div>
               <button
-                disabled={cart.length === 0}
+                onClick={submitOrder}
+                disabled={cart.length === 0 || submitting}
                 className="mt-4 cursor-pointer flex w-full items-center justify-center gap-2 rounded-full bg-orange-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
               >
                 <Wallet size={16} />
