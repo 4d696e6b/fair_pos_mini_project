@@ -6,7 +6,8 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { createMenu } from "@/shared/service/menu";
-import { addOrder } from "@/shared/service/order";
+import { addOrder, getOrders } from "@/shared/service/order";
+import type { Order } from "@/shared/service/order";
 
 type MenuItem = {
   id: string;
@@ -48,6 +49,8 @@ export default function CustomerPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   // Define menu from Firestore
   const [menu, setMenu] = useState<Record<Category, MenuItem[]>>({
@@ -84,6 +87,24 @@ export default function CustomerPage() {
   );
   const tax = subtotal * TAX_RATE;
   const total = subtotal + tax;
+
+  // Load order history when on the history tab
+  useEffect(() => {
+    if (activeTab !== "ประวัติ") return;
+    let mounted = true;
+    setLoadingOrders(true);
+    getOrders()
+      .then((data) => {
+        if (mounted) setOrders(data);
+      })
+      .catch((err) => console.error("Failed to load orders", err))
+      .finally(() => {
+        if (mounted) setLoadingOrders(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab]);
 
   function addToCart(item: MenuItem) {
     setCart((prev) => {
@@ -200,8 +221,71 @@ export default function CustomerPage() {
 
       {/* History Page */}
       {activeTab === "ประวัติ" ? (
-        <div className="flex flex-1 items-center justify-center text-zinc-400">
-          ยังไม่มีประวัติการสั่งซื้อ
+        <div className="flex-1 overflow-y-auto p-8">
+          {loadingOrders ? (
+            <div className="text-center text-zinc-400">กำลังโหลดประวัติ...</div>
+          ) : orders.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-zinc-400">
+              ยังไม่มีประวัติการสั่งซื้อ
+            </div>
+          ) : (
+            <div className="mx-auto max-w-3xl space-y-6">
+              {orders.map((order) => {
+                const orderTotal = order.orderList.reduce(
+                  (sum, item) => sum + item.price * item.quantity,
+                  0
+                );
+                const orderDate = order.orderList[0]?.createdAt ?? new Date();
+                return (
+                  <div
+                    key={order.id}
+                    className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100 dark:bg-zinc-900 dark:ring-zinc-800"
+                  >
+                    <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-800">
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                          คำสั่งซื้อ #{order.id.slice(0, 10)}
+                        </p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {orderDate.toLocaleString("th-TH")}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold text-orange-600">
+                        ฿{orderTotal.toFixed(2)}
+                      </span>
+                    </div>
+                    <ul className="space-y-3">
+                      {order.orderList.map((item) => (
+                        <li key={item.id} className="flex items-start gap-3">
+                          <img
+                            src={item.img}
+                            alt={item.name}
+                            className="flex h-14 w-14 items-center justify-center rounded-xl object-cover text-4xl"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                              {item.name}
+                            </p>
+                            {item.note && (
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                หมายเหตุ: {item.note}
+                              </p>
+                            )}
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                              จำนวน: {item.quantity} · ฿{item.price.toFixed(2)}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                            ฿{(item.price * item.quantity).toFixed(2)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : (
         // Menu Page
