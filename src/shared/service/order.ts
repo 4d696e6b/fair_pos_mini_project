@@ -8,6 +8,8 @@ export type OrderItem = {
   img: string;
   quantity: number;
   note: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  createdAt: Date;
 };
 
 function generateOrderId() {
