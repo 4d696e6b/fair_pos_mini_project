@@ -5,6 +5,7 @@ import { Bell, Settings, Minus, Plus, Trash2, Wallet, Pencil } from "lucide-reac
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { createMenu } from "@/shared/service/menu";
 
 type MenuItem = {
   id: string;
@@ -68,18 +69,27 @@ export default function CustomerPage() {
     drink: [],
     dessert: [],
   });
+  // End Define menu from Firestore
 
   // Load menu from Firestore
   useEffect(() => {
-    getDoc(doc(db, "menu", "menuOrder"))
-      .then((snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as { menuOrder: MenuItem[] };
+    const menuRef = doc(db, "menu", "menuOrder");
+
+    getDoc(menuRef)
+      .then(async (snap) => {
+        if (!snap.exists()) {
+          // Create menu if it doesn't exist
+          await createMenu();
+        }
+        const freshSnap = await getDoc(menuRef);
+        if (freshSnap.exists()) {
+          const data = freshSnap.data() as { menuOrder: MenuItem[] };
           setMenu((prev) => ({ ...prev, main: data.menuOrder }));
         }
       })
       .catch((err) => console.error("Failed to load menu", err));
   }, []);
+  // End Load menu from Firestore
 
   const subtotal = useMemo(
     () => cart.reduce((sum, line) => sum + line.unitPrice * line.qty, 0),
