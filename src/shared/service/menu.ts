@@ -10,6 +10,14 @@ const menuOrder = [
   { id: "m6", name: "ปูผัดผงกระหรี่", price: 70, img: "ImagePlaceHolder.jpg", category: "main" },
   { id: "m7", name: "หมึกผัดไข่เค็ม", price: 70, img: "ImagePlaceHolder.jpg", category: "main" },
   { id: "m8", name: "เล้งแซ่บ", price: 80, img: "ImagePlaceHolder.jpg", category: "main" },
+  { id: "m9", name: "ปอเปี๊ยะทอด", price: 45, img: "ImagePlaceHolder.jpg", category: "snack" },
+  { id: "m10", name: "ไก่ทอด", price: 55, img: "ImagePlaceHolder.jpg", category: "snack" },
+  { id: "m11", name: "เกี๊ยวกรอบ", price: 40, img: "ImagePlaceHolder.jpg", category: "snack" },
+  { id: "m12", name: "ชาไทยเย็น", price: 35, img: "ImagePlaceHolder.jpg", category: "drink" },
+  { id: "m13", name: "น้ำมะนาว", price: 30, img: "ImagePlaceHolder.jpg", category: "drink" },
+  { id: "m14", name: "โค้ก", price: 25, img: "ImagePlaceHolder.jpg", category: "drink" },
+  { id: "m15", name: "ข้าวเหนียวมะม่วง", price: 65, img: "ImagePlaceHolder.jpg", category: "dessert" },
+  { id: "m16", name: "ไอศกรีมกะทิ", price: 40, img: "ImagePlaceHolder.jpg", category: "dessert" },
 ];
 
 export async function createMenu() {
