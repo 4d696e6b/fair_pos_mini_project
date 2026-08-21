@@ -14,6 +14,7 @@ type MenuItem = {
   name: string;
   price: number;
   img: string;
+  category: Category;
 };
 
 type Category = "main" | "snack" | "drink" | "dessert";
@@ -74,7 +75,17 @@ export default function CustomerPage() {
         const freshSnap = await getDoc(menuRef);
         if (freshSnap.exists()) {
           const data = freshSnap.data() as { menuOrder: MenuItem[] };
-          setMenu((prev) => ({ ...prev, main: data.menuOrder }));
+          const grouped: Record<Category, MenuItem[]> = {
+            main: [],
+            snack: [],
+            drink: [],
+            dessert: [],
+          };
+          for (const item of data.menuOrder) {
+            const category = (item.category ?? "main") as Category;
+            grouped[category].push(item);
+          }
+          setMenu(grouped);
         }
       })
       .catch((err) => console.error("Failed to load menu", err));
