@@ -33,24 +33,7 @@ type CartLine = {
   img: string;
 };
 
-const INITIAL_CART: CartLine[] = [
-  {
-    id: "c1",
-    name: "ข้าวกะเพราเนื้อ",
-    note: "ไม่ผัก ไข่ดาวสุก",
-    unitPrice: 30,
-    qty: 2,
-    img: "ImagePlaceholder.jpg"
-  },
-  {
-    id: "c2",
-    name: "ข้าวหน้าเนื้อ",
-    note: "ไข่อ่อนเค็ม",
-    unitPrice: 80,
-    qty: 1,
-    img: "ImagePlaceholder.jpg"
-  },
-];
+const INITIAL_CART: CartLine[] = [];
 
 const TAX_RATE = 0.07;
 const TABS = ["เมนูอาหาร", "ประวัติ"] as const;
