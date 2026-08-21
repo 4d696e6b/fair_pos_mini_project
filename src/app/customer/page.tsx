@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell, Settings, Minus, Plus, Trash2, Wallet, Pencil } from "lucide-react";
 import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 type MenuItem = {
   id: string;
@@ -20,33 +22,6 @@ const CATEGORIES: { id: Category; label: string }[] = [
   { id: "dessert", label: "ของหวาน" },
 ];
 
-const MENU: Record<Category, MenuItem[]> = {
-  // Pseudo menu
-  main: [
-    { id: "m1", name: "ข้าวกะเพราหมู", price: 60, img: "ImagePlaceHolder.jpg"},
-    { id: "m2", name: "ข้าวกะเพราเนื้อ", price: 60, img: "ImagePlaceHolder.jpg" },
-    { id: "m3", name: "ข้าวหน้าเนื้อ", price: 80, img: "ImagePlaceHolder.jpg" },
-    { id: "m4", name: "ข้าวผัด", price: 50, img: "ImagePlaceHolder.jpg" },
-    { id: "m5", name: "ผัดไทยกุ้งสด", price: 60, img: "ImagePlaceHolder.jpg" },
-    { id: "m6", name: "ปูผัดผงกระหรี่", price: 70, img: "ImagePlaceHolder.jpg" },
-    { id: "m7", name: "หมึกผัดไข่เค็ม", price: 70, img: "ImagePlaceHolder.jpg" },
-    { id: "m8", name: "เล้งแซ่บ", price: 80, img: "ImagePlaceHolder.jpg" },
-  ],
-  snack: [
-    { id: "s1", name: "ปอเปี๊ยะทอด", price: 45, img: "ImagePlaceHolder.jpg" },
-    { id: "s2", name: "ไก่ทอด", price: 55, img: "ImagePlaceHolder.jpg" },
-    { id: "s3", name: "เกี๊ยวกรอบ", price: 40, img: "ImagePlaceHolder.jpg" },
-  ],
-  drink: [
-    { id: "d1", name: "ชาไทยเย็น", price: 35, img: "ImagePlaceHolder.jpg" },
-    { id: "d2", name: "น้ำมะนาว", price: 30, img: "ImagePlaceHolder.jpg" },
-    { id: "d3", name: "โค้ก", price: 25, img: "ImagePlaceHolder.jpg" },
-  ],
-  dessert: [
-    { id: "w1", name: "ข้าวเหนียวมะม่วง", price: 65, img: "ImagePlaceHolder.jpg" },
-    { id: "w2", name: "ไอศกรีมกะทิ", price: 40, img: "ImagePlaceHolder.jpg" },
-  ],
-};
 
 type CartLine = {
   id: string;
@@ -85,6 +60,26 @@ export default function CustomerPage() {
   const [cart, setCart] = useState<CartLine[]>(INITIAL_CART);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
+
+  // Define menu from Firestore
+  const [menu, setMenu] = useState<Record<Category, MenuItem[]>>({
+    main: [],
+    snack: [],
+    drink: [],
+    dessert: [],
+  });
+
+  // Load menu from Firestore
+  useEffect(() => {
+    getDoc(doc(db, "menu", "menuOrder"))
+      .then((snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as { menuOrder: MenuItem[] };
+          setMenu((prev) => ({ ...prev, main: data.menuOrder }));
+        }
+      })
+      .catch((err) => console.error("Failed to load menu", err));
+  }, []);
 
   const subtotal = useMemo(
     () => cart.reduce((sum, line) => sum + line.unitPrice * line.qty, 0),
@@ -207,7 +202,7 @@ export default function CustomerPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-4">
-              {MENU[activeCategory].map((item) => (
+              {menu[activeCategory].map((item) => (
                 <div
                   key={item.id}
                   className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 dark:bg-zinc-900 dark:ring-zinc-800"
