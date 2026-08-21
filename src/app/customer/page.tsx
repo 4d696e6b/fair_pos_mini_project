@@ -32,6 +32,8 @@ type CartLine = {
   unitPrice: number;
   qty: number;
   img: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  createdAt: Date;
 };
 
 const INITIAL_CART: CartLine[] = [];
@@ -100,6 +102,8 @@ export default function CustomerPage() {
           unitPrice: item.price,
           qty: 1,
           img: item.img,
+          status: 'pending',
+          createdAt: new Date(),
         },
       ];
     });
@@ -131,6 +135,8 @@ export default function CustomerPage() {
         img: line.img,
         quantity: line.qty,
         note: line.note,
+        status: 'pending' as const,
+        createdAt: new Date(),
       }));
       await addOrder(orderList);
       clearCart();
