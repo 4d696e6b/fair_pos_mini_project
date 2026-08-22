@@ -49,6 +49,10 @@ export default function RestaurantPage() {
     await updateOrderStatus(id, "completed");
   }
 
+  async function cancelOrder(id: string) {
+    await updateOrderStatus(id, "cancelled");
+  }
+
   const sortedOrders = useMemo(() => {
     return [...orders].sort((a, b) => {
       const aTime = a.createdAt.getTime();
@@ -101,6 +105,7 @@ export default function RestaurantPage() {
                     key={order.id}
                     order={order}
                     onReady={markReady}
+                    onCancel={cancelOrder}
                     overdueThreshold={OVERDUE_THRESHOLD}
                   />
                 ))}
