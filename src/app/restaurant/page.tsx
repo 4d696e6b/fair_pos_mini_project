@@ -7,8 +7,9 @@ import { Header } from "@/app/components/Header";
 import { EmptyState } from "@/app/components/EmptyState";
 import Footer from "./components/footer";
 import { ArrowUpDown } from "lucide-react";
-import { subscribeOrders, updateOrderStatus } from "@/shared/service/order";
+import { subscribeOrders, updateOrderStatus, getOrders } from "@/shared/service/order";
 import type { Order as FirestoreOrder } from "@/shared/service/order";
+import { OrderHistory } from "./components/OrderHistory";
 
 const OVERDUE_THRESHOLD = 15;
 
@@ -34,6 +35,8 @@ export default function RestaurantPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(1);
   const [sortDirection, setSortDirection] = useState<"oldest" | "newest">("oldest");
+  const [historyOrders, setHistoryOrders] = useState<FirestoreOrder[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeOrders((firestoreOrders) => {
@@ -44,6 +47,26 @@ export default function RestaurantPage() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "ประวัติ") return;
+    let mounted = true;
+    setLoadingHistory(true);
+    getOrders()
+      .then((data) => {
+        if (mounted) {
+          const done = data.filter((o) =>
+            o.orderList.every((item) => item.status === "completed" || item.status === "cancelled")
+          );
+          setHistoryOrders(done);
+        }
+      })
+      .catch((err) => console.error("Failed to load order history", err))
+      .finally(() => {
+        if (mounted) setLoadingHistory(false);
+      });
+    return () => { mounted = false; };
+  }, [activeTab]);
 
   async function markReady(id: string) {
     await updateOrderStatus(id, "completed");
@@ -74,14 +97,10 @@ export default function RestaurantPage() {
         onTabChange={(tab) => setActiveTab(tab)}
       />
 
-      {activeTab !== "รายการอาหาร" ? (
-        <EmptyState
-          message={
-            activeTab === "ประวัติ"
-              ? "ยังไม่มีประวัติออร์เดอร์"
-              : "ยังไม่มีข้อมูลสต็อกสินค้า"
-          }
-        />
+      {activeTab === "ประวัติ" ? (
+        <OrderHistory orders={historyOrders} loading={loadingHistory} />
+      ) : activeTab === "สต็อกสินค้า" ? (
+        <EmptyState message="ยังไม่มีข้อมูลสต็อกสินค้า" />
       ) : (
         <>
           <main className="flex flex-1 flex-col overflow-hidden py-8">
