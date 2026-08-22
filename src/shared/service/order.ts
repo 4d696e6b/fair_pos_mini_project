@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { collection, doc, getDocs, setDoc, onSnapshot, updateDoc } from "firebase/firestore";
 
 export type OrderItem = {
   id: string;
@@ -31,25 +31,48 @@ export async function addOrder(orderList: OrderItem[]) {
   return orderId;
 }
 
-export async function getOrders(): Promise<Order[]> {
-  const snap = await getDocs(collection(db, "orders"));
-  const orders = snap.docs.map((d) => {
-    const data = d.data() as { orderList?: unknown[] };
-    const orderList = (data.orderList || []).map((item: any): OrderItem => ({
-      id: String(item.id ?? ""),
-      name: String(item.name ?? ""),
-      price: Number(item.price ?? 0),
-      img: String(item.img ?? ""),
-      quantity: Number(item.quantity ?? 0),
-      note: String(item.note ?? ""),
-      status: ((item.status as OrderItem["status"]) ?? "pending"),
-      createdAt: item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt ?? Date.now()),
-    }));
-    return { id: d.id, orderList };
-  });
+function parseOrderDoc(d: { id: string; data: () => Record<string, any> }): Order {
+  const data = d.data() as { orderList?: unknown[] };
+  const orderList = (data.orderList || []).map((item: any): OrderItem => ({
+    id: String(item.id ?? ""),
+    name: String(item.name ?? ""),
+    price: Number(item.price ?? 0),
+    img: String(item.img ?? ""),
+    quantity: Number(item.quantity ?? 0),
+    note: String(item.note ?? ""),
+    status: ((item.status as OrderItem["status"]) ?? "pending"),
+    createdAt: item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt ?? Date.now()),
+  }));
+  return { id: d.id, orderList };
+}
+
+function sortOrders(orders: Order[]): Order[] {
   return orders.sort((a, b) => {
     const aTime = a.orderList[0]?.createdAt?.getTime?.() ?? 0;
     const bTime = b.orderList[0]?.createdAt?.getTime?.() ?? 0;
     return bTime - aTime;
   });
+}
+
+export async function getOrders(): Promise<Order[]> {
+  const snap = await getDocs(collection(db, "orders"));
+  return sortOrders(snap.docs.map(parseOrderDoc));
+}
+
+export function subscribeOrders(callback: (orders: Order[]) => void) {
+  return onSnapshot(collection(db, "orders"), (snap) => {
+    callback(sortOrders(snap.docs.map(parseOrderDoc)));
+  });
+}
+
+export async function updateOrderStatus(orderId: string, status: OrderItem["status"]) {
+  const snap = await getDocs(collection(db, "orders"));
+  const orderDoc = snap.docs.find((d) => d.id === orderId);
+  if (!orderDoc) return;
+  const data = orderDoc.data() as { orderList?: any[] };
+  const updatedList = (data.orderList || []).map((item: any) => ({
+    ...item,
+    status,
+  }));
+  await updateDoc(doc(db, "orders", orderId), { orderList: updatedList });
 }

@@ -6,57 +6,49 @@ import type { Order } from "./components/OrderCard";
 import { Header } from "@/app/components/Header";
 import { EmptyState } from "@/app/components/EmptyState";
 import Footer from "./components/footer";
-
-const INITIAL_ORDERS: Order[] = [
-  // Hardcoded Order
-  {
-    id: 1,
-    placedAt: "12:30 PM",
-    minutesAgo: 15,
-    orderType: "ทานที่ร้าน",
-    items: [
-      { qty: 2, name: "ข้าวกะเพราเนื้อ", note: "ไม่ผัก ไข่ดาวสุก" },
-      { qty: 1, name: "ข้าวหน้าเนื้อ", note: "ไข่อ่อนเค็ม" },
-      { qty: 1, name: "ชาไทยเย็น" },
-    ],
-  },
-  {
-    id: 2,
-    placedAt: "12:35 PM",
-    minutesAgo: 10,
-    orderType: "สั่งกลับบ้าน",
-    items: [
-      { qty: 3, name: "ปอเปี๊ยะทอด" },
-      { qty: 1, name: "ผัดไทยกุ้งสด", note: "กุ้ง, แพ้ถั่วลิสง" },
-    ],
-  },
-];
+import { subscribeOrders, updateOrderStatus } from "@/shared/service/order";
+import type { Order as FirestoreOrder } from "@/shared/service/order";
 
 const OVERDUE_THRESHOLD = 15;
+
+function mapFirestoreOrder(order: FirestoreOrder): Order {
+  const createdAt = order.orderList[0]?.createdAt ?? new Date();
+  return {
+    id: order.id,
+    createdAt,
+    orderType: "ทานที่ร้าน",
+    items: order.orderList.map((item) => ({
+      qty: item.quantity,
+      name: item.name,
+      note: item.note || undefined,
+    })),
+  };
+}
+
 const TABS = ["รายการอาหาร", "ประวัติ", "สต็อกสินค้า"] as const;
 
 export default function RestaurantPage() {
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("รายการอาหาร");
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(1);
 
-  // Tick minutesAgo upward so the "overdue" state feels alive.
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOrders((prev) =>
-        prev.map((order) => ({ ...order, minutesAgo: order.minutesAgo + 1 }))
+    const unsubscribe = subscribeOrders((firestoreOrders) => {
+      const pending = firestoreOrders.filter((o) =>
+        o.orderList.some((item) => item.status === "pending")
       );
-    }, 60000);
-    return () => clearInterval(interval);
+      setOrders(pending.map(mapFirestoreOrder));
+    });
+    return () => unsubscribe();
   }, []);
 
-  function markReady(id: number) {
-    setOrders((prev) => prev.filter((order) => order.id !== id));
+  async function markReady(id: string) {
+    await updateOrderStatus(id, "completed");
   }
 
   const overdueCount = orders.filter(
-    (o) => o.minutesAgo >= OVERDUE_THRESHOLD
+    (o) => Math.floor((Date.now() - o.createdAt.getTime()) / 60000) >= OVERDUE_THRESHOLD
   ).length;
 
   return (

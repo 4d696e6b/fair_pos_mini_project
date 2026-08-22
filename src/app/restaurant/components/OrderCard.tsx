@@ -9,21 +9,22 @@ export type OrderItem = {
 };
 
 export type Order = {
-  id: number;
-  placedAt: string;
-  minutesAgo: number;
+  id: string;
+  createdAt: Date;
   orderType: "ทานที่ร้าน" | "สั่งกลับบ้าน";
   items: OrderItem[];
 };
 
 type OrderCardProps = {
   order: Order;
-  onReady: (id: number) => void;
+  onReady: (id: string) => void;
   overdueThreshold: number;
 };
 
 export function OrderCard({ order, onReady, overdueThreshold }: OrderCardProps) {
-  const overdue = order.minutesAgo >= overdueThreshold;
+  const minutesAgo = Math.floor((Date.now() - order.createdAt.getTime()) / 60000);
+  const placedAt = order.createdAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  const overdue = minutesAgo >= overdueThreshold;
 
   return (
     <div className="flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100 dark:bg-zinc-900 dark:ring-zinc-800">
@@ -31,7 +32,7 @@ export function OrderCard({ order, onReady, overdueThreshold }: OrderCardProps) 
         <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">
           ออร์เดอร์ที่ #{order.id}
         </h3>
-        <span className="text-xs text-zinc-400">{order.placedAt}</span>
+        <span className="text-xs text-zinc-400">{placedAt}</span>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
@@ -43,7 +44,7 @@ export function OrderCard({ order, onReady, overdueThreshold }: OrderCardProps) 
           }`}
         >
           {overdue ? <AlertCircle size={12} /> : <Clock size={12} />}
-          {order.minutesAgo} นาทีที่แล้ว
+          {minutesAgo} นาทีที่แล้ว
         </span>
         <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
           {order.orderType}
