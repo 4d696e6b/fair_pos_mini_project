@@ -84,8 +84,8 @@ export default function RestaurantPage() {
         />
       ) : (
         <>
-          <main className="flex-1 overflow-y-auto p-8">
-            <div className="mb-4 flex items-center justify-end">
+          <main className="flex flex-1 flex-col overflow-hidden py-8">
+            <div className="mb-4 flex items-center justify-end px-8">
               <button
                 onClick={() => setSortDirection((d) => (d === "oldest" ? "newest" : "oldest"))}
                 className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-700 dark:hover:bg-zinc-800"
@@ -95,11 +95,11 @@ export default function RestaurantPage() {
               </button>
             </div>
             {sortedOrders.length === 0 ? (
-              <p className="mt-16 text-center text-sm text-zinc-400">
+              <p className="mt-16 text-center text-sm text-zinc-400 px-8">
                 ไม่มีออร์เดอร์ที่กำลังดำเนินการ
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="flex flex-1 items-stretch gap-6 overflow-x-auto px-8 pb-4">
                 {sortedOrders.map((order) => (
                   <OrderCard
                     key={order.id}
@@ -109,6 +109,7 @@ export default function RestaurantPage() {
                     overdueThreshold={OVERDUE_THRESHOLD}
                   />
                 ))}
+                <div className="w-0 shrink-0" aria-hidden />
               </div>
             )}
           </main>

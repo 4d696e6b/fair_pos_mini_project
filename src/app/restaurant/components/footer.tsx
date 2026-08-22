@@ -7,7 +7,7 @@ export default function Footer({ overdueCount, page, setPage }: { overdueCount: 
         <span className="h-2 w-2 rounded-full bg-red-500" />
         แสดงรายการที่ค้างเกิน 15 นาที ({overdueCount})
       </span>
-      <span className="flex items-center gap-3">
+      {/* <span className="flex items-center gap-3">
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           className="rounded-full px-2 py-1 hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"
@@ -23,7 +23,7 @@ export default function Footer({ overdueCount, page, setPage }: { overdueCount: 
         >
           ›
         </button>
-      </span>
+      </span> */}
     </footer>
   );
 }

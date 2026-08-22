@@ -30,7 +30,7 @@ export function OrderCard({ order, onReady, onCancel, overdueThreshold }: OrderC
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   return (
-    <div className="flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100 dark:bg-zinc-900 dark:ring-zinc-800">
+    <div className="flex w-80 shrink-0 flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100 dark:bg-zinc-900 dark:ring-zinc-800">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">
           ออร์เดอร์ที่ #{order.id}
