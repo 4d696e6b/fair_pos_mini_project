@@ -46,8 +46,24 @@ function parseOrderDoc(d: { id: string; data: () => Record<string, any> }): Orde
   return { id: d.id, orderList };
 }
 
+function isToday(date: Date): boolean {
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+}
+
+function filterToday(orders: Order[]): Order[] {
+  return orders.filter((o) => {
+    const created = o.orderList[0]?.createdAt;
+    return created && isToday(created);
+  });
+}
+
 function sortOrders(orders: Order[]): Order[] {
-  return orders.sort((a, b) => {
+  return filterToday(orders).sort((a, b) => {
     const aTime = a.orderList[0]?.createdAt?.getTime?.() ?? 0;
     const bTime = b.orderList[0]?.createdAt?.getTime?.() ?? 0;
     return bTime - aTime;
