@@ -1,62 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { OrderCard } from "./components/OrderCard";
 import type { Order } from "./components/OrderCard";
 import { Header } from "@/app/components/Header";
 import { EmptyState } from "@/app/components/EmptyState";
-
-
-const INITIAL_ORDERS: Order[] = [
-  // Hardcoded Order
-  {
-    id: 1,
-    placedAt: "12:30 PM",
-    minutesAgo: 15,
-    orderType: "ทานที่ร้าน",
-    items: [
-      { qty: 2, name: "ข้าวกะเพราเนื้อ", note: "ไม่ผัก ไข่ดาวสุก" },
-      { qty: 1, name: "ข้าวหน้าเนื้อ", note: "ไข่อ่อนเค็ม" },
-      { qty: 1, name: "ชาไทยเย็น" },
-    ],
-  },
-  {
-    id: 2,
-    placedAt: "12:35 PM",
-    minutesAgo: 10,
-    orderType: "สั่งกลับบ้าน",
-    items: [
-      { qty: 3, name: "ปอเปี๊ยะทอด" },
-      { qty: 1, name: "ผัดไทยกุ้งสด", note: "กุ้ง, แพ้ถั่วลิสง" },
-    ],
-  },
-];
+import Footer from "./components/footer";
+import { ArrowUpDown } from "lucide-react";
+import { subscribeOrders, updateOrderStatus, getOrders } from "@/shared/service/order";
+import type { Order as FirestoreOrder } from "@/shared/service/order";
+import { OrderHistory } from "./components/OrderHistory";
 
 const OVERDUE_THRESHOLD = 15;
+
+function mapFirestoreOrder(order: FirestoreOrder): Order {
+  const createdAt = order.orderList[0]?.createdAt ?? new Date();
+  return {
+    id: order.id,
+    createdAt,
+    orderType: "ทานที่ร้าน",
+    items: order.orderList.map((item) => ({
+      qty: item.quantity,
+      name: item.name,
+      note: item.note || undefined,
+    })),
+  };
+}
+
 const TABS = ["รายการอาหาร", "ประวัติ", "สต็อกสินค้า"] as const;
 
 export default function RestaurantPage() {
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("รายการอาหาร");
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(1);
+  const [sortDirection, setSortDirection] = useState<"oldest" | "newest">("oldest");
+  const [historyOrders, setHistoryOrders] = useState<FirestoreOrder[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Tick minutesAgo upward so the "overdue" state feels alive.
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOrders((prev) =>
-        prev.map((order) => ({ ...order, minutesAgo: order.minutesAgo + 1 }))
+    const unsubscribe = subscribeOrders((firestoreOrders) => {
+      const pending = firestoreOrders.filter((o) =>
+        o.orderList.some((item) => item.status === "pending")
       );
-    }, 60000);
-    return () => clearInterval(interval);
+      setOrders(pending.map(mapFirestoreOrder));
+    });
+    return () => unsubscribe();
   }, []);
 
-  function markReady(id: number) {
-    setOrders((prev) => prev.filter((order) => order.id !== id));
+  useEffect(() => {
+    if (activeTab !== "ประวัติ") return;
+    let mounted = true;
+    setLoadingHistory(true);
+    getOrders()
+      .then((data) => {
+        if (mounted) {
+          const done = data.filter((o) =>
+            o.orderList.every((item) => item.status === "completed" || item.status === "cancelled")
+          );
+          setHistoryOrders(done);
+        }
+      })
+      .catch((err) => console.error("Failed to load order history", err))
+      .finally(() => {
+        if (mounted) setLoadingHistory(false);
+      });
+    return () => { mounted = false; };
+  }, [activeTab]);
+
+  async function markReady(id: string) {
+    await updateOrderStatus(id, "completed");
   }
 
+  async function cancelOrder(id: string) {
+    await updateOrderStatus(id, "cancelled");
+  }
+
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => {
+      const aTime = a.createdAt.getTime();
+      const bTime = b.createdAt.getTime();
+      return sortDirection === "oldest" ? aTime - bTime : bTime - aTime;
+    });
+  }, [orders, sortDirection]);
+
   const overdueCount = orders.filter(
-    (o) => o.minutesAgo >= OVERDUE_THRESHOLD
+    (o) => Math.floor((Date.now() - o.createdAt.getTime()) / 60000) >= OVERDUE_THRESHOLD
   ).length;
 
   return (
@@ -68,58 +97,43 @@ export default function RestaurantPage() {
         onTabChange={(tab) => setActiveTab(tab)}
       />
 
-      {activeTab !== "รายการอาหาร" ? (
-        <EmptyState
-          message={
-            activeTab === "ประวัติ"
-              ? "ยังไม่มีประวัติออร์เดอร์"
-              : "ยังไม่มีข้อมูลสต็อกสินค้า"
-          }
-        />
+      {activeTab === "ประวัติ" ? (
+        <OrderHistory orders={historyOrders} loading={loadingHistory} />
+      ) : activeTab === "สต็อกสินค้า" ? (
+        <EmptyState message="ยังไม่มีข้อมูลสต็อกสินค้า" />
       ) : (
         <>
-          <main className="flex-1 overflow-y-auto p-8">
-            {orders.length === 0 ? (
-              <p className="mt-16 text-center text-sm text-zinc-400">
+          <main className="flex flex-1 flex-col overflow-hidden py-8">
+            <div className="mb-4 flex items-center justify-end px-8">
+              <button
+                onClick={() => setSortDirection((d) => (d === "oldest" ? "newest" : "oldest"))}
+                className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-700 dark:hover:bg-zinc-800"
+              >
+                <ArrowUpDown size={14} />
+                {sortDirection === "oldest" ? "รอนานสุดก่อน" : "ล่าสุดก่อน"}
+              </button>
+            </div>
+            {sortedOrders.length === 0 ? (
+              <p className="mt-16 text-center text-sm text-zinc-400 px-8">
                 ไม่มีออร์เดอร์ที่กำลังดำเนินการ
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {orders.map((order) => (
+              <div className="flex flex-1 items-stretch gap-6 overflow-x-auto px-8 pb-4">
+                {sortedOrders.map((order) => (
                   <OrderCard
                     key={order.id}
                     order={order}
                     onReady={markReady}
+                    onCancel={cancelOrder}
                     overdueThreshold={OVERDUE_THRESHOLD}
                   />
                 ))}
+                <div className="w-0 shrink-0" aria-hidden />
               </div>
             )}
           </main>
 
-          {/* <footer className="flex items-center justify-between border-t border-zinc-200 bg-white px-8 py-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
-              แสดงรายการที่ค้างเกิน 15 นาที ({overdueCount})
-            </span>
-            <span className="flex items-center gap-3">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-full px-2 py-1 hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"
-                disabled={page === 1}
-              >
-                ‹
-              </button>
-              หน้า {page} จาก 1
-              <button
-                onClick={() => setPage((p) => Math.min(1, p + 1))}
-                className="rounded-full px-2 py-1 hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"
-                disabled={page === 1}
-              >
-                ›
-              </button>
-            </span>
-          </footer> */}
+          <Footer overdueCount={overdueCount} page={page} setPage={setPage} />
         </>
       )}
     </div>
