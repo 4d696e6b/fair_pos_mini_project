@@ -10,11 +10,18 @@ type HeaderProps<T extends string> = {
 
 export function Header<T extends string>({ brand, tabs, activeTab, onTabChange }: HeaderProps<T>) {
   return (
-    <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-8 py-4 dark:border-zinc-800 dark:bg-zinc-950">
+    <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-8 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center gap-10">
+        <div className="flex items-center gap-2">
+        <img
+          src="/logo.png"
+          alt="logo"
+          className="flex w-20 object-cover h-20 items-center justify-center"
+        />
         <Link href="/" className="text-lg font-bold text-orange-600">
           {brand}
         </Link>
+        </div>
         <nav className="flex items-center gap-6 text-sm font-medium">
           {tabs.map((tab) => (
             <button

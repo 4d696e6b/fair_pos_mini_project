@@ -71,7 +71,7 @@ function MenuCard({
       <img
         src={item.img}
         alt={item.name}
-        className="flex w-full object-contain h-32 items-center justify-center text-5xl"
+        className="flex w-full object-cover h-32 items-center justify-center text-5xl"
       />
       <div className="flex items-center justify-between p-3">
         <div>
