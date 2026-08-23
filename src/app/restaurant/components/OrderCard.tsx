@@ -11,6 +11,7 @@ export type OrderItem = {
 
 export type Order = {
   id: string;
+  orderNumber: number;
   createdAt: Date;
   orderType: "ทานที่ร้าน" | "สั่งกลับบ้าน";
   items: OrderItem[];
@@ -33,7 +34,7 @@ export function OrderCard({ order, onReady, onCancel, overdueThreshold }: OrderC
     <div className="flex w-80 shrink-0 flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100 dark:bg-zinc-900 dark:ring-zinc-800">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">
-          ออร์เดอร์ที่ #{order.id}
+          ออร์เดอร์ที่ #{order.orderNumber}
         </h3>
         <span className="text-xs text-zinc-400">{placedAt}</span>
       </div>
@@ -94,7 +95,7 @@ export function OrderCard({ order, onReady, onCancel, overdueThreshold }: OrderC
               ยืนยันยกเลิกออร์เดอร์?
             </h4>
             <p className="mt-2 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              ออร์เดอร์ #{order.id} จะถูกยกเลิกและไม่สามารถย้อนกลับได้
+              ออร์เดอร์ #{order.orderNumber} จะถูกยกเลิกและไม่สามารถย้อนกลับได้
             </p>
             <div className="mt-5 flex gap-3">
               <button

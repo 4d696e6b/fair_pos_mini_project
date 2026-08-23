@@ -7,6 +7,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 type OrderHistoryProps = {
   orders: Order[];
   loading: boolean;
+  orderNumberMap: Map<string, number>;
 };
 
 const statusConfig = {
@@ -15,7 +16,7 @@ const statusConfig = {
   pending: { label: "กำลังดำเนินการ", className: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400" },
 } as const;
 
-export function OrderHistory({ orders, loading }: OrderHistoryProps) {
+export function OrderHistory({ orders, loading, orderNumberMap }: OrderHistoryProps) {
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -47,7 +48,7 @@ export function OrderHistory({ orders, loading }: OrderHistoryProps) {
             <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-800">
               <div>
                 <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                  ออร์เดอร์ #{order.id.slice(0, 10)}
+                  ออร์เดอร์ #{orderNumberMap.get(order.id) ?? "-"}
                 </p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   {orderDate.toLocaleString("th-TH")}

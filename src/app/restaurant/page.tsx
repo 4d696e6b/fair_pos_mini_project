@@ -13,10 +13,11 @@ import { OrderHistory } from "./components/OrderHistory";
 
 const OVERDUE_THRESHOLD = 15;
 
-function mapFirestoreOrder(order: FirestoreOrder): Order {
+function mapFirestoreOrder(order: FirestoreOrder, orderNumber: number): Order {
   const createdAt = order.orderList[0]?.createdAt ?? new Date();
   return {
     id: order.id,
+    orderNumber,
     createdAt,
     orderType: "ทานที่ร้าน",
     items: order.orderList.map((item) => ({
@@ -25,6 +26,17 @@ function mapFirestoreOrder(order: FirestoreOrder): Order {
       note: item.note || undefined,
     })),
   };
+}
+
+function buildOrderNumberMap(orders: FirestoreOrder[]): Map<string, number> {
+  const sorted = [...orders].sort((a, b) => {
+    const aTime = a.orderList[0]?.createdAt?.getTime?.() ?? 0;
+    const bTime = b.orderList[0]?.createdAt?.getTime?.() ?? 0;
+    return aTime - bTime;
+  });
+  const map = new Map<string, number>();
+  sorted.forEach((o, idx) => map.set(o.id, idx + 1));
+  return map;
 }
 
 const TABS = ["รายการอาหาร", "ประวัติ", "สต็อกสินค้า"] as const;
@@ -37,13 +49,16 @@ export default function RestaurantPage() {
   const [sortDirection, setSortDirection] = useState<"oldest" | "newest">("oldest");
   const [historyOrders, setHistoryOrders] = useState<FirestoreOrder[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [orderNumberMap, setOrderNumberMap] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     const unsubscribe = subscribeOrders((firestoreOrders) => {
+      const numberMap = buildOrderNumberMap(firestoreOrders);
+      setOrderNumberMap(numberMap);
       const pending = firestoreOrders.filter((o) =>
         o.orderList.some((item) => item.status === "pending")
       );
-      setOrders(pending.map(mapFirestoreOrder));
+      setOrders(pending.map((o) => mapFirestoreOrder(o, numberMap.get(o.id) ?? 0)));
     });
     return () => unsubscribe();
   }, []);
@@ -98,7 +113,7 @@ export default function RestaurantPage() {
       />
 
       {activeTab === "ประวัติ" ? (
-        <OrderHistory orders={historyOrders} loading={loadingHistory} />
+        <OrderHistory orders={historyOrders} loading={loadingHistory} orderNumberMap={orderNumberMap} />
       ) : activeTab === "สต็อกสินค้า" ? (
         <EmptyState message="ยังไม่มีข้อมูลสต็อกสินค้า" />
       ) : (
@@ -128,6 +143,7 @@ export default function RestaurantPage() {
                     overdueThreshold={OVERDUE_THRESHOLD}
                   />
                 ))}
+
                 <div className="w-0 shrink-0" aria-hidden />
               </div>
             )}
